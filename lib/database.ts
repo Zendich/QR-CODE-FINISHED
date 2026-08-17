@@ -14,6 +14,14 @@ export type Event = {
   end: string;
 };
 
+type EventPayload = {
+  v: number;
+  event: string;
+  title?: string;
+  start?: string;
+  end?: string;
+};
+
 export type RegisterResult = {
   success: boolean;
   message: string;
@@ -49,7 +57,7 @@ export async function registerAttendance(
   rawPayload: string,
   studentId: string
 ): Promise<RegisterResult> {
-  let payload: any;
+  let payload: EventPayload;
   try {
     payload = JSON.parse(rawPayload);
   } catch {
@@ -60,30 +68,9 @@ export async function registerAttendance(
     return { success: false, message: 'Not an attendance QR code.' };
   }
 
-  let eventId: string;
-  let title: string;
-  let startStr = '';
-  let endStr = '';
-
-  if (typeof payload.event === 'object' && payload.event !== null) {
-    eventId = payload.event.id;
-    title = payload.event.title || payload.event.id;
-    startStr = payload.event.start || payload.start || '';
-    endStr = payload.event.end || payload.end || '';
-  } else {
-    eventId = String(payload.event);
-    title = payload.title || eventId;
-    startStr = payload.start || '';
-    endStr = payload.end || '';
-  }
-
-  if (!eventId) {
-    return { success: false, message: 'Invalid QR code structure.' };
-  }
-
   const now = Date.now();
-  const start = startStr ? new Date(startStr).getTime() : null;
-  const end = endStr ? new Date(endStr).getTime() : null;
+  const start = payload.start ? new Date(payload.start).getTime() : null;
+  const end = payload.end ? new Date(payload.end).getTime() : null;
 
   if (start && now < start) {
     return { success: false, message: 'Event has not started yet.' };
@@ -93,15 +80,21 @@ export async function registerAttendance(
   }
 
   const database = await getDb();
+  const title = payload.title ?? payload.event;
 
   await database.runAsync(
     'INSERT OR IGNORE INTO events (eventId, title, start, end) VALUES (?, ?, ?, ?)',
-    [eventId, title, startStr, endStr]
+    payload.event,
+    title,
+    payload.start ?? '',
+    payload.end ?? ''
   );
 
   const result = await database.runAsync(
     'INSERT OR IGNORE INTO attendance (studentId, eventId, scannedAt) VALUES (?, ?, ?)',
-    [studentId, eventId, new Date().toISOString()]
+    studentId,
+    payload.event,
+    new Date().toISOString()
   );
 
   if (result.changes === 0) {
@@ -120,12 +113,12 @@ export async function getAttendanceHistory(
 ): Promise<AttendanceRecord[]> {
   const database = await getDb();
   const rows = await database.getAllAsync<AttendanceRecord>(
-    `SELECT a.id, a.eventId, COALESCE(e.title, a.eventId) AS eventTitle, a.scannedAt
+    `SELECT a.id, a.eventId, e.title AS eventTitle, a.scannedAt
      FROM attendance a
-     LEFT JOIN events e ON e.eventId = a.eventId
+     JOIN events e ON e.eventId = a.eventId
      WHERE a.studentId = ?
      ORDER BY a.scannedAt DESC`,
-    [studentId]
+    studentId
   );
   return rows;
 }
@@ -134,6 +127,9 @@ export async function createEvent(event: Event): Promise<void> {
   const database = await getDb();
   await database.runAsync(
     'INSERT OR REPLACE INTO events (eventId, title, start, end) VALUES (?, ?, ?, ?)',
-    [event.eventId, event.title, event.start, event.end]
+    event.eventId,
+    event.title,
+    event.start,
+    event.end
   );
 }
