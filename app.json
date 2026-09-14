@@ -4,7 +4,7 @@
     "slug": "QR-ATT",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/ICON.png",
     "scheme": "qr-attendance",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -13,13 +13,12 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#272936",
+        "foregroundImage": "./assets/images/ICON.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.zendich.QRATT"
     },
     "web": {
       "output": "static",
@@ -37,10 +36,18 @@
         }
       ],
       "expo-sqlite",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-secure-store"
     ],
     "experiments": {
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "308b7088-3d9f-4156-ae38-6dc47f9e844b"
+      }
+    },
+    "owner": "zendich"
   }
 }
