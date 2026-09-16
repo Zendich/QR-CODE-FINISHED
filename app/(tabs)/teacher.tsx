@@ -112,19 +112,27 @@ export default function TeacherScreen() {
       end: toLocalISO(endDate),
     };
 
-    createEvent(eventData).then(() => {
-      setMessage('Event saved! Scan the QR with the Scan tab to test it.');
-      // Fix 5.2: Payload uses key `event` to match scanner validation
-      setPayload(
-        JSON.stringify({
-          v: 1,
-          event: eventData.eventId,
-          title: eventData.title,
-          start: eventData.start,
-          end: eventData.end,
-        })
-      );
-    });
+    createEvent(eventData)
+      .then(() => {
+        setMessage('Event saved! Scan the QR with the Scan tab to test it.');
+        setPayload(
+          JSON.stringify({
+            v: 1,
+            event: eventData.eventId,
+            title: eventData.title,
+            start: eventData.start,
+            end: eventData.end,
+          })
+        );
+      })
+      .catch((caughtError) => {
+        setMessage(
+          caughtError instanceof Error
+            ? caughtError.message
+            : 'Could not save the event.'
+        );
+        setPayload(null);
+      });
   };
 
   return (
@@ -234,10 +242,11 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 22,
+    fontWeight: '700',
     color: COLORS.textPrimary,
     marginBottom: 4,
+    letterSpacing: 0.2,
   },
   subtitle: {
     fontSize: 14,
@@ -254,7 +263,7 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: COLORS.card,
-    borderRadius: 14,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
     paddingHorizontal: 14,
@@ -267,7 +276,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     backgroundColor: COLORS.card,
-    borderRadius: 14,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
     paddingHorizontal: 14,
@@ -285,7 +294,7 @@ const styles = StyleSheet.create({
   },
   chip: {
     backgroundColor: COLORS.card,
-    borderRadius: 20,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
     paddingHorizontal: 12,
@@ -305,15 +314,12 @@ const styles = StyleSheet.create({
   },
   resultCard: {
     backgroundColor: COLORS.card,
-    borderRadius: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     padding: 16,
     marginTop: 20,
     alignItems: 'center',
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   resultTitle: {
     fontSize: 15,

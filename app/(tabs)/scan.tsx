@@ -4,10 +4,11 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import AppButton from '@/components/AppButton';
 import { COLORS } from '@/constants/colors';
-import { STUDENT_ID } from '@/constants/student';
+import { useAuth } from '@/lib/auth';
 import { registerAttendance } from '@/lib/database';
 
 export default function ScanScreen() {
+  const { user } = useAuth();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [lastData, setLastData] = useState<string | null>(null);
@@ -38,10 +39,24 @@ export default function ScanScreen() {
   const handleBarcodeScanned = ({ data }: { data: string }) => {
     setScanned(true);
     setLastData(data);
-    registerAttendance(data, STUDENT_ID).then((result) => {
-      setMessage(result.message);
-      setSuccess(result.success);
-    });
+    if (!user) {
+      setMessage('Please sign in before scanning.');
+      setSuccess(false);
+      return;
+    }
+    registerAttendance(data, user.id)
+      .then((result) => {
+        setMessage(result.message);
+        setSuccess(result.success);
+      })
+      .catch((caughtError) => {
+        setMessage(
+          caughtError instanceof Error
+            ? caughtError.message
+            : 'Could not record attendance.'
+        );
+        setSuccess(false);
+      });
   };
 
   const handleScanAgain = () => {
@@ -137,10 +152,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   success: {
-    color: '#2E7D32', // Green for valid scan
+    color: COLORS.success,
   },
   error: {
-    color: '#C62828', // Red for duplicate/invalid scan
+    color: COLORS.danger,
   },
   scanData: {
     fontSize: 12,
