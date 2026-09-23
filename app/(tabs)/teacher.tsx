@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -16,7 +17,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import AppButton from '@/components/AppButton';
 import { COLORS } from '@/constants/colors';
-import { createEvent } from '@/lib/database';
+import { useAuth } from '@/lib/auth';
+import { createEvent } from '@/lib/events';
+import { getProfile, type Role } from '@/lib/profiles';
+import { buildQRPayload } from '@/lib/qr';
 
 function toLocalISO(date: Date) {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -38,6 +42,9 @@ function formatDateTime(date: Date) {
 }
 
 export default function TeacherScreen() {
+  const { user } = useAuth();
+  const [role, setRole] = useState<Role | null>(null);
+  const [roleLoading, setRoleLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [eventId, setEventId] = useState('');
   const [startDate, setStartDate] = useState(() => new Date());
@@ -48,6 +55,38 @@ export default function TeacherScreen() {
   const [editingPart, setEditingPart] = useState<'date' | 'time'>('date');
   const [payload, setPayload] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      if (!user) {
+        setRole(null);
+        setRoleLoading(false);
+        return () => {
+          active = false;
+        };
+      }
+
+      setRoleLoading(true);
+
+      getProfile(user.id)
+        .then((profile) => {
+          if (!active) return;
+          setRole(profile?.role ?? 'student');
+          setRoleLoading(false);
+        })
+        .catch(() => {
+          if (!active) return;
+          setRole('student');
+          setRoleLoading(false);
+        });
+
+      return () => {
+        active = false;
+      };
+    }, [user])
+  );
 
   const openPicker = (target: 'start' | 'end') => {
     setEditTarget(target);
@@ -91,6 +130,27 @@ export default function TeacherScreen() {
     setEndDate(new Date(startDate.getTime() + minutes * 60 * 1000));
   };
 
+  if (roleLoading) {
+    return (
+      <View style={[styles.container, styles.lockContainer]}>
+        <Text style={styles.lockTitle}>Checking your account...</Text>
+        <Text style={styles.lockText}>Loading access details.</Text>
+      </View>
+    );
+  }
+
+  if (role !== 'teacher') {
+    return (
+      <View style={[styles.container, styles.lockContainer]}>
+        <Ionicons name="lock-closed-outline" size={56} color={COLORS.primary} />
+        <Text style={styles.lockTitle}>Teachers Only</Text>
+        <Text style={styles.lockText}>
+          Only teacher accounts can create events.
+        </Text>
+      </View>
+    );
+  }
+
   const handleCreateEvent = () => {
     const trimmedTitle = title.trim();
     const trimmedEventId = eventId.trim();
@@ -113,17 +173,15 @@ export default function TeacherScreen() {
     };
 
     createEvent(eventData)
-      .then(() => {
+      .then(({ error }) => {
+        if (error) {
+          setMessage(error || 'Could not save the event.');
+          setPayload(null);
+          return;
+        }
+
         setMessage('Event saved! Scan the QR with the Scan tab to test it.');
-        setPayload(
-          JSON.stringify({
-            v: 1,
-            event: eventData.eventId,
-            title: eventData.title,
-            start: eventData.start,
-            end: eventData.end,
-          })
-        );
+        setPayload(buildQRPayload(eventData));
       })
       .catch((caughtError) => {
         setMessage(
@@ -339,5 +397,24 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 16,
+  },
+  lockContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  lockTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  lockText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });

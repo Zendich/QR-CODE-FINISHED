@@ -4,11 +4,12 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { COLORS } from '@/constants/colors';
 import {
+  getAttendanceHistory,
   getTeacherEventAttendance,
+  type AttendanceRecord,
   type TeacherEventAttendance,
 } from '@/lib/attendance';
 import { useAuth } from '@/lib/auth';
-import { getAttendanceHistory, type AttendanceRecord } from '@/lib/database';
 import { getProfile } from '@/lib/profiles';
 import type { Role } from '@/lib/profiles';
 
