@@ -102,10 +102,8 @@ function TeacherHistory({ events }: { events: TeacherEventAttendance[] }) {
         <View style={styles.card}>
           <View style={styles.eventHeader}>
             <Text style={styles.eventTitle}>{item.title}</Text>
-            <View style={styles.countBadge}>
-              <Text style={styles.countText}>{item.attendeeCount}</Text>
-            </View>
           </View>
+          <Text style={styles.countText}>{formatAttendanceHeadline(item.attendeeCount)} have scanned this event.</Text>
           <Text style={styles.eventMeta}>{item.eventCode}</Text>
           {item.startTime && <Text style={styles.eventMeta}>Starts: {formatDate(item.startTime)}</Text>}
           {item.attendees.length === 0 ? (
@@ -128,6 +126,12 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleString();
 }
 
+function formatAttendanceHeadline(count: number) {
+  return count === 1
+    ? '1 attendee'
+    : `${count} attendees`;
+}
+
 function shortId(id: string) {
   return id ? `...${id.slice(-8)}` : 'unknown';
 }
@@ -142,8 +146,7 @@ const styles = StyleSheet.create({
   eventHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   eventTitle: { color: COLORS.textPrimary, flex: 1, fontSize: 16, fontWeight: '600', marginBottom: 4 },
   eventMeta: { color: COLORS.textSecondary, fontSize: 13, marginTop: 2 },
-  countBadge: { backgroundColor: COLORS.primary, borderRadius: 14, minWidth: 30, paddingHorizontal: 9, paddingVertical: 5 },
-  countText: { color: COLORS.textOnPrimary, fontSize: 14, fontWeight: '700', textAlign: 'center' },
+  countText: { color: COLORS.primary, fontSize: 14, fontWeight: '700', marginBottom: 6 },
   emptyAttendees: { color: COLORS.textSecondary, fontSize: 13, marginTop: 12 },
   attendeeRow: { borderTopColor: COLORS.border, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, paddingTop: 8 },
   attendeeId: { color: COLORS.textPrimary, fontSize: 13, fontWeight: '600' },

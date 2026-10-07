@@ -16,7 +16,7 @@ export type SignUpProfile = {
 
 let globalSession: Session | null = null;
 let globalUser: User | null = null;
-let globalLoading = false;
+let globalLoading = true;
 let authInitialized = false;
 const listeners = new Set<() => void>();
 
@@ -40,27 +40,23 @@ export function useAuth(): AuthState {
 
     if (!authInitialized) {
       authInitialized = true;
+      globalLoading = true;
+      notify();
+
       const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_OUT' || session || !globalSession) {
           setAuth(session);
         }
       });
 
-      Promise.race([
-        supabase.auth.getSession(),
-        new Promise<null>((resolve) => {
-          setTimeout(() => resolve(null), 5000);
-        }),
-      ]).then((result) => {
-        const restoredSession = result ? result.data.session : null;
-        if (restoredSession || !globalSession) {
-          setAuth(restoredSession);
-        }
-      }).catch(() => {
-        if (!globalSession) {
+      supabase.auth
+        .getSession()
+        .then(({ data }) => {
+          setAuth(data.session);
+        })
+        .catch(() => {
           setAuth(null);
-        }
-      });
+        });
 
       return () => {
         listeners.delete(listener);
